@@ -1,16 +1,16 @@
 import streamlit as st
-import openai
 import os
 from dotenv import load_dotenv
 import time
-import base64
+from openai import OpenAI
 
 # Cargar variables de entorno
 load_dotenv()
 
 # Configuración de OpenAI
-openai.api_key = os.getenv("OPENAI_API_KEY")
+api_key = os.getenv("OPENAI_API_KEY")
 assistant_id = os.getenv("ASSISTANT_ID")
+client = OpenAI(api_key=api_key)
 
 # CSS personalizado para un tema similar al de la imagen
 css = """
@@ -250,7 +250,7 @@ if "messages" not in st.session_state:
 
 if "thread_id" not in st.session_state:
     # Crear un thread nuevo
-    thread = openai.beta.threads.create()
+    thread = client.beta.threads.create()
     st.session_state.thread_id = thread.id
 
 if "is_loading" not in st.session_state:
@@ -282,14 +282,14 @@ if st.session_state.is_loading:
     last_user_message = st.session_state.messages[-1]["content"]
     
     # Agregar mensaje al thread
-    openai.beta.threads.messages.create(
+    client.beta.threads.messages.create(
         thread_id=st.session_state.thread_id,
         role="user",
         content=last_user_message
     )
     
     # Crear una ejecución del asistente
-    run = openai.beta.threads.runs.create(
+    run = client.beta.threads.runs.create(
         thread_id=st.session_state.thread_id,
         assistant_id=assistant_id
     )
@@ -318,13 +318,13 @@ if st.session_state.is_loading:
     # Esperar a que el asistente complete la respuesta
     while run.status in ["queued", "in_progress"]:
         time.sleep(0.5)
-        run = openai.beta.threads.runs.retrieve(
+        run = client.beta.threads.runs.retrieve(
             thread_id=st.session_state.thread_id,
             run_id=run.id
         )
     
     # Obtener la respuesta
-    messages = openai.beta.threads.messages.list(
+    messages = client.beta.threads.messages.list(
         thread_id=st.session_state.thread_id
     )
     
